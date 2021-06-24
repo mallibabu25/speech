@@ -12,6 +12,56 @@ grammar digits;
           six   |
           seven |
           eight |
+          fed	|
+          pod	|
+          vox	|
+          wig	|
+          lam	|
+          mid	|
+          sit	|
+          cob	|
+          jog	|
+          dub	|
+          gut	|
+          pat	|
+          nut	|
+          eat	|
+          yup	|
+          rid	|
+          fix	|
+          pix	|
+          hob	|
+          sob	|
+          sod	|
+          cog	|
+          sop	|
+          cot	|
+          cub	|
+          sub	|
+          lug	|
+          zap	|
+          deb	|
+          res	|
+          lib	|
+          sib	|
+          kid	|
+          wit	|
+          mom	|
+          pom	|
+          mop	|
+          bop	|
+          sox	|
+          tub	|
+          nub	|
+          tug	|
+          pup	|
+          sup	|
+          pus	|
+          gus	|
+          hut	|
+          beg	|
+          meg	|
+          ten	|
+          reg	|
           nine  ;
-
 public <digits> = <digit>+;
