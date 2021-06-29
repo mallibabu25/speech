@@ -3,18 +3,24 @@ package com.speech;
 import android.content.Context;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Handler;
 import android.util.Log;
 
+import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.Callback;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
+import com.facebook.react.bridge.WritableMap;
+import com.facebook.react.modules.core.DeviceEventManagerModule;
 
 import java.io.File;
 import java.io.IOException;
 import java.lang.ref.WeakReference;
 import java.lang.reflect.Field;
 import java.text.Format;
+
+import javax.annotation.Nullable;
 
 import edu.cmu.pocketsphinx.Assets;
 import edu.cmu.pocketsphinx.Hypothesis;
@@ -25,9 +31,13 @@ import edu.cmu.pocketsphinx.SpeechRecognizerSetup;
 public class Speech extends ReactContextBaseJavaModule implements RecognitionListener {
 
     private SpeechRecognizer recognizer = null;
+    final ReactApplicationContext reactContext;
+    String searchWord = "";
 
-    Speech(ReactApplicationContext context) {
+    public Speech(ReactApplicationContext context) {
         super(context);
+        this.reactContext = context;
+
     }
 
     /* Named searches allow to quickly reconfigure the decoder */
@@ -37,8 +47,16 @@ public class Speech extends ReactContextBaseJavaModule implements RecognitionLis
     private static final String PHONE_SEARCH = "phones";
     private static final String MENU_SEARCH = "menu";
 
+
     /* Keyword we are looking for to activate menu */
-    private static final String KEYPHRASE = "oh mighty computer";
+    private static final String KEYPHRASE = "mom";
+
+
+    private void sendEvent(String eventName, @Nullable WritableMap params) {
+        this.reactContext
+                .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class)
+                .emit(eventName, params);
+    }
 
     @Override
     public String getName() {
@@ -64,7 +82,7 @@ public class Speech extends ReactContextBaseJavaModule implements RecognitionLis
     @ReactMethod
     public void startListening(String word, Callback callBack) throws IOException {
         ReactApplicationContext context = getReactApplicationContext();
-
+        searchWord = "mom";
         Assets assets = new Assets(context);
         File assetDir = assets.syncAssets();
         setupRecognizer(assetDir);
@@ -74,6 +92,26 @@ public class Speech extends ReactContextBaseJavaModule implements RecognitionLis
         callBack.invoke("Start Listening");
 
     }
+
+
+    @ReactMethod
+    public void stopSpeech(final Callback callback) {
+        Handler mainHandler = new Handler(this.reactContext.getMainLooper());
+        mainHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    if (recognizer != null) {
+                        recognizer.stop();
+                    }
+                    callback.invoke(false);
+                } catch(Exception e) {
+                    callback.invoke(e.getMessage());
+                }
+            }
+        });
+    }
+
 
 
     private void setupRecognizer(File assetsDir) throws IOException {
@@ -126,7 +164,7 @@ public class Speech extends ReactContextBaseJavaModule implements RecognitionLis
 
     @Override
     public void onEndOfSpeech() {
-
+        recognizer.stop();
     }
 
     @Override
@@ -135,7 +173,16 @@ public class Speech extends ReactContextBaseJavaModule implements RecognitionLis
         if (hypothesis != null) {
             String text = hypothesis.getHypstr();
             int score =  hypothesis.getBestScore();
-            Log.d("SpeechModule", "onPartialResult Text: " + text+" score: "+score);
+            int prob =  hypothesis.getProb();
+
+            Double finalResult =  ScoreCalculator.b(searchWord,text);
+
+            WritableMap event = Arguments.createMap();
+            event.putString("resultText", text);
+            event.putDouble("score", finalResult);
+
+            sendEvent("onPartialResult", event);
+
         }
 
     }
@@ -147,7 +194,17 @@ public class Speech extends ReactContextBaseJavaModule implements RecognitionLis
         if (hypothesis != null) {
             String text = hypothesis.getHypstr();
             int score =  hypothesis.getBestScore();
-            Log.d("SpeechModule", "onResult Text: " + text+" score: "+score);
+            int prob =  hypothesis.getProb();
+
+
+           Double finalResult =  ScoreCalculator.b(searchWord,text);
+
+            WritableMap event = Arguments.createMap();
+            event.putString("resultText", text);
+            event.putDouble("score", finalResult);
+
+            sendEvent("onResult", event);
+
         }
 
     }
