@@ -164,6 +164,7 @@ public class Speech extends ReactContextBaseJavaModule implements RecognitionLis
 
     @Override
     public void onEndOfSpeech() {
+//        recognizer.cancel();
         recognizer.stop();
     }
 
@@ -175,6 +176,8 @@ public class Speech extends ReactContextBaseJavaModule implements RecognitionLis
             int score =  hypothesis.getBestScore();
             int prob =  hypothesis.getProb();
 
+            Log.d("SpeechModule", "onPartialResult: " + text);
+
             Double finalResult =  ScoreCalculator.b(searchWord,text);
 
             WritableMap event = Arguments.createMap();
@@ -182,6 +185,8 @@ public class Speech extends ReactContextBaseJavaModule implements RecognitionLis
             event.putDouble("score", finalResult);
 
             sendEvent("onPartialResult", event);
+
+
 
         }
 
@@ -196,8 +201,9 @@ public class Speech extends ReactContextBaseJavaModule implements RecognitionLis
             int score =  hypothesis.getBestScore();
             int prob =  hypothesis.getProb();
 
+            Log.d("SpeechModule", "onResult: " + text);
 
-           Double finalResult =  ScoreCalculator.b(searchWord,text);
+            Double finalResult =  ScoreCalculator.b(searchWord,text);
 
             WritableMap event = Arguments.createMap();
             event.putString("resultText", text);
