@@ -1,11 +1,3 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * @format
- * @flow strict-local
- */
-
 import React from 'react';
 import {
   SafeAreaView,
@@ -15,10 +7,11 @@ import {
   Text,
   useColorScheme,
   View,
-  NativeModules, Button ,
+  NativeModules,
+  Button,
   PermissionsAndroid,
   Platform,
-  NativeEventEmitter
+  NativeEventEmitter,
 } from 'react-native';
 
 import {
@@ -28,133 +21,108 @@ import {
   LearnMoreLinks,
   ReloadInstructions,
 } from 'react-native/Libraries/NewAppScreen';
-
-
-const Speech = NativeModules.Speech;
-
-const speechEmitter =
-  Platform.OS !== 'web' ? new NativeEventEmitter(Speech) : null;
-
-const Section = ({children, title}) => {
-  const isDarkMode = useColorScheme() === 'dark';
-  return (
-    <View style={styles.sectionContainer}>
-      <Text
-        style={[
-          styles.sectionTitle,
-          {
-            color: isDarkMode ? Colors.white : Colors.black,
-          },
-        ]}>
-        {title}
-      </Text>
-      <Text
-        style={[
-          styles.sectionDescription,
-          {
-            color: isDarkMode ? Colors.light : Colors.dark,
-          },
-        ]}>
-        {children}
-      </Text>
-    </View>
-  );
-};
+import Speech from './Speech';
 
 const App = () => {
   const isDarkMode = useColorScheme() === 'dark';
 
-  const [result,setResult] = React.useState("");
-  const [partialResult,setPartialResult] = React.useState("")
-
+  const [result, setResult] = React.useState('');
+  const [partialResult, setPartialResult] = React.useState('');
+  const [isListening, setIsListening] = React.useState(false);
 
   const requestCameraPermission = async () => {
     try {
       const granted = await PermissionsAndroid.request(
         PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
         {
-          title: "Audio Permission",
-          message:
-            "App needs access to your audio ",
-          buttonNeutral: "Ask Me Later",
-          buttonNegative: "Cancel",
-          buttonPositive: "OK"
-        }
+          title: 'Audio Permission',
+          message: 'App needs access to your audio ',
+          buttonNeutral: 'Ask Me Later',
+          buttonNegative: 'Cancel',
+          buttonPositive: 'OK',
+        },
       );
       if (granted === PermissionsAndroid.RESULTS.GRANTED) {
-        console.log("You can use the audio");
+        console.log('You can use the audio');
       } else {
-        console.log("audio permission denied");
+        console.log('audio permission denied');
       }
     } catch (err) {
       console.warn(err);
     }
   };
+
   React.useEffect(() => {
     requestCameraPermission();
-   
+
+    Speech.onSpeechResults = onSpeechResults;
+    Speech.onSpeechPartialResults = onSpeechPartialResults;
+    Speech.onSpeechStart = onSpeechStart;
+    Speech.onSpeechEnd = onSpeechEnd;
+    return () => {
+      Speech.removeAllListeners();
+    };
   }, []);
 
-  const backgroundStyle = {
-    backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
+  const onSpeechResults = e => {
+    console.log('result ' + JSON.stringify(e));
+    setResult(JSON.stringify(e));
   };
 
-  speechEmitter.addListener("onPartialResult", function(data) {
-    console.log("onPartialResult"+JSON.stringify(data))
-    setPartialResult(JSON.stringify(data))
+  const onSpeechPartialResults = e => {
+    console.log('Partial Results ' + JSON.stringify(e));
+    setPartialResult(JSON.stringify(e));
+  };
+  const onSpeechStart = e => {
+    setIsListening(true);
+    console.log('onSpeechStart ' + JSON.stringify(e));
+  };
 
+  const onSpeechEnd = e => {
+    setIsListening(false);
 
-});
-
-speechEmitter.addListener("onResult", function(data) {
-  console.log("onResult"+JSON.stringify(data))
-  setResult(JSON.stringify(data));
-
-})
+    console.log('onSpeechEnd ' + JSON.stringify(e));
+  };
 
   const onPress = () => {
+    setIsListening(true);
 
-
-    Speech.startListening('testName', (eventId) => {
-      console.log(`startListening ${eventId}`);
-    });
+    Speech.start('eat', 'digits');
   };
-  
+
   const stop = async () => {
-  await Speech.stopSpeech((eventId) => {
-    console.log(`startListening ${eventId}`);
-  });
+    Speech.stop();
   };
-
-
 
   return (
-    <SafeAreaView style={backgroundStyle}>
+    <SafeAreaView>
       <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-      <ScrollView
-        contentInsetAdjustmentBehavior="automatic"
-        style={backgroundStyle}>
+      <ScrollView contentInsetAdjustmentBehavior="automatic">
         <Header />
         <Button
-      title="Click to invoke your native module!"
-      color="#841584"
-      onPress={onPress}
-    />
-       <Button
-      title="Click to invoke your native module!"
-      color="#841584"
-      onPress={stop}
-    />
-  <View style={{flex:1}}>
-    <Text>result</Text>
-    <Text>{result}</Text>
-    </View>
-    <View style={{flex:1}}>
-
-    <Text>partialResult</Text>
-    <Text>{partialResult}</Text>
-    </View>
-
+          title="start!"
+          color="#841584"
+          onPress={onPress}
+          style={{marginBottom: 10}}
+        />
+        <Button
+          title="stop!"
+          color="#841584"
+          onPress={stop}
+          style={{margin: 10}}
+        />
+        <View style={{flex: 1}}>
+          <Text>result</Text>
+          <Text>{result}</Text>
+        </View>
+        <View style={{flex: 1}}>
+          <Text>partialResult</Text>
+          <Text>{partialResult}</Text>
+        </View>
+        <View style={{flex: 1}}>
+          <Text>IsListening</Text>
+          <Text>{isListening ? 'true' : 'false'}</Text>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );

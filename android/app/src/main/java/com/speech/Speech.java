@@ -49,7 +49,7 @@ public class Speech extends ReactContextBaseJavaModule implements RecognitionLis
 
 
     /* Keyword we are looking for to activate menu */
-    private static final String KEYPHRASE = "mom";
+    private static final String KEYPHRASE = "KEYPHRASE";
 
 
     private void sendEvent(String eventName, @Nullable WritableMap params) {
@@ -80,16 +80,25 @@ public class Speech extends ReactContextBaseJavaModule implements RecognitionLis
     }
 
     @ReactMethod
-    public void startListening(String word, Callback callBack) throws IOException {
-        ReactApplicationContext context = getReactApplicationContext();
-        searchWord = "mom";
-        Assets assets = new Assets(context);
-        File assetDir = assets.syncAssets();
-        setupRecognizer(assetDir);
+    public void startListening(String word,String grammar, Callback callBack) throws IOException {
 
-        switchSearch(DIGITS_SEARCH);
+        try {
+            ReactApplicationContext context = getReactApplicationContext();
+            searchWord = word;
+            Assets assets = new Assets(context);
+            File assetDir = assets.syncAssets();
+            setupRecognizer(assetDir);
+            String selectedGrammar = grammar;
+            if(grammar == null && grammar.trim() == "") {
+                selectedGrammar = DIGITS_SEARCH;
+            }
 
-        callBack.invoke("Start Listening");
+            switchSearch(selectedGrammar);
+
+        } catch(Exception e) {
+            callBack.invoke("Failed Listening");
+        }
+
 
     }
 
@@ -151,21 +160,27 @@ public class Speech extends ReactContextBaseJavaModule implements RecognitionLis
 
     }
 
-    private void switchSearch(String searchName) {
+    private void switchSearch(String selectedGrammar) {
         recognizer.stop();
-        recognizer.startListening(searchName, 10000);
+        recognizer.startListening(selectedGrammar, 10000);
     }
 
 
     @Override
     public void onBeginningOfSpeech() {
-
+        WritableMap event = Arguments.createMap();
+        event.putBoolean("status", true);
+        sendEvent("onSpeechStart", event);
     }
 
     @Override
     public void onEndOfSpeech() {
 //        recognizer.cancel();
         recognizer.stop();
+        WritableMap event = Arguments.createMap();
+        event.putBoolean("status", true);
+        sendEvent("onSpeechEnd", event);
+
     }
 
     @Override
@@ -184,13 +199,14 @@ public class Speech extends ReactContextBaseJavaModule implements RecognitionLis
             event.putString("resultText", text);
             event.putDouble("score", finalResult);
 
-            sendEvent("onPartialResult", event);
+            sendEvent("onSpeechPartialResults", event);
 
 
 
         }
 
     }
+
 
     @Override
     public void onResult(Hypothesis hypothesis) {
@@ -203,13 +219,25 @@ public class Speech extends ReactContextBaseJavaModule implements RecognitionLis
 
             Log.d("SpeechModule", "onResult: " + text);
 
-            Double finalResult =  ScoreCalculator.b(searchWord,text);
-
+            //  Double finalResult =  ScoreCalculator.b(searchWord,text);
             WritableMap event = Arguments.createMap();
-            event.putString("resultText", text);
-            event.putDouble("score", finalResult);
 
-            sendEvent("onResult", event);
+            String parts[] = text.split(" ");
+
+            event.putString("rawText",text);
+            event.putInt("wordCount",parts.length);
+
+            for (int i = 0; i < parts.length; i++) {
+
+                Double finalResult =  ScoreCalculator.b(searchWord,parts[i]);
+                if(event.hasKey("score") == false || finalResult > event.getDouble("score")){
+                    event.putString("resultText", parts[i]);
+                    event.putDouble("score", finalResult);
+
+                }
+
+            }
+            sendEvent("onSpeechResults", event);
 
         }
 
