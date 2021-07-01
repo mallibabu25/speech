@@ -25,5 +25,20 @@
   },
   "jest": {
     "preset": "react-native"
-  }
+  },
+  "description": "react native speech",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mallibabu25/speech.git"
+  },
+  "keywords": [
+    "react-native-speech"
+  ],
+  "author": "inventrix",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/mallibabu25/speech/issues"
+  },
+  "homepage": "https://github.com/mallibabu25/speech#readme"
 }
